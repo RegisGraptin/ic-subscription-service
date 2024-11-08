@@ -10,8 +10,7 @@ use alloy::{
     transports::icp::IcpConfig,
 };
 
-use ic_cdk::export::candid::{CandidType, Deserialize};
-use ic_cdk::storage;
+use candid::{CandidType, Deserialize};
 use ic_cdk_macros::*;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -44,6 +43,12 @@ async fn get_address() -> Result<String, String> {
     let signer = create_icp_signer().await;
     let address = signer.address();
     Ok(address.to_string())
+}
+
+
+#[heartbeat]
+async fn heartbeat() {
+    let _ = transfer_usdc_periodically().await;
 }
 
 /// Transfer USDC
@@ -113,23 +118,18 @@ async fn transfer_usdc() -> Result<String, String> {
 
 #[update]
 async fn transfer_usdc_periodically() -> Result<String, String> {
-    let state = storage::get_mut::<SubscriptionState>();
-
     // Get the current time in seconds since UNIX_EPOCH
     let current_time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
         .as_secs();
 
-    // Check if the interval has passed
-    if current_time >= state.last_transfer_time + TRANSFER_INTERVAL_SECONDS {
+    // Use modulo to determine if the current time has crossed the threshold for a new day
+    if current_time % TRANSFER_INTERVAL_SECONDS == 0 {
         // Call the `transfer_usdc` function
         let result = transfer_usdc().await;
-
-        // Update the last transfer time if successful
-        if result.is_ok() {
-            state.last_transfer_time = current_time;
-        }
+        
+        // Return the result of the transfer attempt
         result
     } else {
         Err("Transfer not yet due.".to_string())

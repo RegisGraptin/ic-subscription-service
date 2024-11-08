@@ -29,3 +29,5 @@ alloy = { git = "https://github.com/ic-alloy/ic-alloy.git", tag = "v0.3.5-icp.0"
   "json",
   "contract",
 ] }
+ic-cdk-macros = "0.17.0"
+serde = "1.0.214"
